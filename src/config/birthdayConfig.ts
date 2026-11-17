@@ -83,23 +83,25 @@ export const birthdayConfig: BirthdayConfig = {
       "You deserve all the happiness in the world.",
       "Happy Birthday once again! 💗"
     ],
-    closing: "With all my love & gratitude,",
-    signature: "Your Best Friend 🌸"
+    closing: "With all my love and gratitude,",
+    signature: "Your's Mentaleyyy"
   },
 
   secretBox: {
     title: "A HIDDEN TREASURE FOR YOU 💎",
     prompt: "Enter the secret magic password to unlock this mystery box...",
-    password: "MENTALLEY", // You can change this to any password you like!
+    password: "1811",
     secretMessage: {
-      headline: "YOU UNLOCKED THE SECRET VAULT! ✨💖",
-      subheadline: "A Promise From My Heart to Yours",
+      headline: "A PROMISE FROM MY HEART TO YOURS 💖",
+      subheadline: "Secret Treasure Vault Unlocked",
       content: [
         "In a world where everything changes so fast, having you as my best friend has been one of life's greatest blessings.",
-        "You've been the one who listened when no one else understood, the one who turned ordinary mundane days into laughing marathons, and the truest soul I know.",
-        "No matter where life takes us, how crazy the world gets, or how many years pass—I will always be in your corner, cheering for your dreams, protecting your smile, and celebrating you."
+        "You've been the one who listened when no one else understood and the truest soul I know.",
+        "No matter where life takes us, how crazy the world gets, or how many years pass - I will always be in your side, cheering for your dreams, protecting ur smile and celebrating you.",
+        "I have scolded you for many times,but still you stood on my side, Thank you for being such a wonderful frd in my life....",
+        "Enakku unna maari perusa pesi wish pannavum, unexpected surprises and gifts kudukavum theriyala, Yetho ennala mudunjathu...."
       ],
-      highlight: "Forever my favorite human, my confidante, and my eternal best friend. Happy Birthday Mentalleyy! 🌸💫"
+      highlight: "HAPPY BIRTHDAY SANDAKAARI !!!"
     }
   },
 

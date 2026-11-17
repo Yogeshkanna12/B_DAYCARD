@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Heart, Wind, Unlock, RotateCcw } from 'lucide-react';
+import { Sparkles, Heart, Wind, Unlock, RotateCcw, FastForward } from 'lucide-react';
 import { birthdayConfig } from '../config/birthdayConfig';
 import type { MemoryItem } from '../config/birthdayConfig';
 import { soundEffects } from '../utils/soundEffects';
@@ -13,8 +14,180 @@ interface SceneOverlaysProps {
   onRestart: () => void;
   memories?: MemoryItem[];
   onSelectMemory?: (m: MemoryItem) => void;
+  onEnterGarden?: () => void;
 }
 
+// ----------------------------------------------------------------------------
+// ENCHANTED INTRO OVERLAY (4-PHASE CINEMATIC SEQUENCE)
+// ----------------------------------------------------------------------------
+function EnchantedIntroOverlay({ onEnter }: { onEnter?: () => void }) {
+  const [phase, setPhase] = useState(1);
+
+  useEffect(() => {
+    // Check if user prefers reduced motion
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (prefersReducedMotion) {
+      setPhase(4);
+      return;
+    }
+
+    // Phase 1: 0 - 2.5s (The Magical Arrival)
+    // Phase 2: 2.5s - 5.0s (The Garden Awakens)
+    // Phase 3: 5.0s - 7.0s (Birthday Reveal)
+    // Phase 4: 7.0s+ (Enter the Experience)
+    const timer2 = setTimeout(() => setPhase(2), 2500);
+    const timer3 = setTimeout(() => setPhase(3), 5000);
+    const timer4 = setTimeout(() => setPhase(4), 7000);
+
+    return () => {
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+      clearTimeout(timer4);
+    };
+  }, []);
+
+  const handleSkip = () => {
+    soundEffects.playClick();
+    setPhase(4);
+  };
+
+  const handleEnterClick = () => {
+    soundEffects.playClick();
+    if (onEnter) onEnter();
+  };
+
+  return (
+    <div className="relative w-full max-w-2xl flex flex-col items-center text-center">
+      {/* Quick Skip Button for Accessibility */}
+      {phase < 4 && (
+        <div className="absolute -top-3 right-0 sm:right-4 pointer-events-auto z-50">
+          <button
+            onClick={handleSkip}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 hover:bg-pink-500/30 text-pink-200 text-xs font-medium border border-pink-300/30 backdrop-blur-md transition-all cursor-pointer shadow-md"
+            title="Skip to Enter"
+          >
+            <span>Skip intro</span>
+            <FastForward size={13} />
+          </button>
+        </div>
+      )}
+
+      <AnimatePresence mode="wait">
+        {/* PHASE 1: THE MAGICAL ARRIVAL */}
+        {phase === 1 && (
+          <motion.div
+            key="intro-phase-1"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.8 }}
+            className="flex flex-col items-center"
+          >
+            <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-purple-900/40 text-purple-200 border border-purple-400/30 text-xs font-semibold tracking-widest uppercase mb-4 shadow-lg backdrop-blur-md">
+              <Sparkles size={14} className="text-yellow-300 animate-spin" />
+              THE MAGICAL ARRIVAL
+            </span>
+            <h2 className="text-3xl sm:text-5xl font-serif font-light text-pink-100 tracking-wide drop-shadow-[0_0_20px_rgba(244,114,182,0.4)]">
+              Entering the Enchanted Garden...
+            </h2>
+            <p className="mt-3 text-pink-200/80 text-sm sm:text-base font-light max-w-md">
+              Tiny golden fireflies awaken in the twilight air ✨
+            </p>
+          </motion.div>
+        )}
+
+        {/* PHASE 2: THE GARDEN AWAKENS */}
+        {phase === 2 && (
+          <motion.div
+            key="intro-phase-2"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.8 }}
+            className="flex flex-col items-center"
+          >
+            <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-pink-900/40 text-pink-200 border border-pink-400/40 text-xs font-semibold tracking-widest uppercase mb-4 shadow-lg backdrop-blur-md">
+              🌸 THE GARDEN AWAKENS 🌸
+            </span>
+            <h2 className="text-3xl sm:text-5xl font-serif font-light text-transparent bg-clip-text bg-gradient-to-r from-pink-200 via-purple-100 to-rose-200 drop-shadow-[0_0_25px_rgba(244,114,182,0.6)]">
+              Blossoms Glow &amp; Butterflies Dance
+            </h2>
+            <p className="mt-3 text-pink-200/90 text-sm sm:text-base font-light max-w-md">
+              Delicate petals float on a gentle fairy breeze... 🦋
+            </p>
+          </motion.div>
+        )}
+
+        {/* PHASE 3: BIRTHDAY REVEAL */}
+        {phase === 3 && (
+          <motion.div
+            key="intro-phase-3"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.8 }}
+            className="flex flex-col items-center"
+          >
+            <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-pink-500/25 text-pink-200 border border-pink-400/40 text-xs font-semibold tracking-widest uppercase mb-3 shadow-md backdrop-blur-md">
+              <Sparkles size={14} className="text-yellow-300" />
+              A SPECIAL BIRTHDAY SURPRISE
+            </span>
+            <h1 className="text-4xl sm:text-6xl font-serif font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-300 via-purple-200 to-rose-300 drop-shadow-[0_4px_30px_rgba(244,114,182,0.7)]">
+              HEY {birthdayConfig.friend.nickname.toUpperCase()} ! 💗
+            </h1>
+            <p className="mt-3 text-pink-100 text-sm sm:text-lg font-light drop-shadow-md max-w-lg">
+              Someone has created a little magical world just for you...
+            </p>
+          </motion.div>
+        )}
+
+        {/* PHASE 4: ENTER THE EXPERIENCE */}
+        {phase === 4 && (
+          <motion.div
+            key="intro-phase-4"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.6 }}
+            className="flex flex-col items-center"
+          >
+            <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-pink-500/25 text-pink-200 border border-pink-400/40 text-xs font-bold tracking-widest uppercase mb-3 shadow-md backdrop-blur-md">
+              🌸 ENCHANTED FAIRY GARDEN 🌸
+            </span>
+            <h1 className="text-4xl sm:text-6xl font-serif font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-300 via-purple-200 to-rose-300 drop-shadow-[0_4px_30px_rgba(244,114,182,0.8)]">
+              HEY {birthdayConfig.friend.nickname.toUpperCase()} ! 💗
+            </h1>
+            <p className="mt-3 text-pink-100 text-sm sm:text-lg font-light drop-shadow-md max-w-lg">
+              Someone has created a little magical world just for you...
+            </p>
+
+            {/* Prominent Glowing Button: "Enter the Enchanted Garden ✨" */}
+            <div className="mt-6 pointer-events-auto flex flex-col items-center gap-3">
+              <button
+                onClick={handleEnterClick}
+                className="px-8 sm:px-10 py-3.5 sm:py-4 rounded-full bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 active:scale-95 text-white font-serif font-bold text-base sm:text-lg tracking-wide shadow-[0_0_35px_rgba(244,114,182,0.7)] border-2 border-pink-200/50 transition-all hover:scale-105 cursor-pointer flex items-center gap-2.5 animate-pulse"
+              >
+                <Sparkles size={20} className="text-yellow-200" />
+                <span>Enter the Enchanted Garden ✨</span>
+              </button>
+
+              <span className="text-xs text-pink-200/70">
+                (or click the floating glowing gift in the center)
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------------
+// MAIN SCENE OVERLAYS EXPORT
+// ----------------------------------------------------------------------------
 export function SceneOverlays({
   currentScene,
   candlesLit,
@@ -24,38 +197,19 @@ export function SceneOverlays({
   onRestart,
   memories,
   onSelectMemory,
+  onEnterGarden,
 }: SceneOverlaysProps) {
   return (
     <div className="pointer-events-none fixed inset-0 z-40 flex flex-col justify-between p-4 sm:p-8 select-none">
       {/* Top Center Scene Header */}
       <div className="flex flex-col items-center text-center mt-2 w-full">
         <AnimatePresence mode="wait">
+          {/* SCENE 1: CINEMATIC ENCHANTED GARDEN INTRO */}
           {currentScene === 1 && (
-            <motion.div
-              key="scene-1"
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="max-w-xl"
-            >
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-pink-500/20 text-pink-300 border border-pink-400/30 text-xs font-semibold tracking-widest uppercase mb-3">
-                <Sparkles size={14} />
-                A SPECIAL SURPRISE
-              </span>
-              <h1 className="text-4xl sm:text-6xl font-serif font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-300 via-purple-200 to-rose-300 drop-shadow-[0_4px_24px_rgba(244,114,182,0.6)]">
-                HEY {birthdayConfig.friend.nickname.toUpperCase()} ! 💗
-              </h1>
-              <p className="mt-3 text-pink-100/90 text-sm sm:text-lg font-light drop-shadow-md">
-                Someone has created a little magical world just for you...
-              </p>
-              <div className="mt-5 pointer-events-auto">
-                <span className="inline-block text-xs font-medium text-pink-300/90 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-pink-300/30 animate-pulse">
-                  ✨ Click the floating gift box to enter! ✨
-                </span>
-              </div>
-            </motion.div>
+            <EnchantedIntroOverlay onEnter={onEnterGarden} />
           )}
 
+          {/* SCENE 2: THE BIRTHDAY WORLD */}
           {currentScene === 2 && (
             <motion.div
               key="scene-2"
@@ -76,6 +230,7 @@ export function SceneOverlays({
             </motion.div>
           )}
 
+          {/* SCENE 3: OUR MEMORIES */}
           {currentScene === 3 && (
             <motion.div
               key="scene-3"
@@ -91,7 +246,7 @@ export function SceneOverlays({
                 Hover to tilt, click any Polaroid to expand into fullscreen view
               </p>
 
-              {/* Responsive Polaroid Gallery Tray with Fixed Aspect Ratio & Consistent Sizing */}
+              {/* Responsive Polaroid Gallery Tray */}
               {memories && onSelectMemory && (
                 <div className="mt-4 sm:mt-6 w-full pointer-events-auto flex items-center justify-center gap-3 sm:gap-4 overflow-x-auto py-3 px-2 max-w-5xl scrollbar-none">
                   {memories.map((m, idx) => {
@@ -115,7 +270,6 @@ export function SceneOverlays({
                         }}
                         className={`flex-shrink-0 w-28 sm:w-36 md:w-40 bg-white p-2 sm:p-2.5 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer border-2 border-pink-100 ${rotClass}`}
                       >
-                        {/* Fixed Aspect Ratio Responsive Container with Soft Pastel Matte */}
                         <div className="w-full aspect-[4/5] rounded-xl overflow-hidden bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100/70 relative flex items-center justify-center p-1">
                           <img
                             src={m.image}
@@ -145,6 +299,7 @@ export function SceneOverlays({
             </motion.div>
           )}
 
+          {/* SCENE 4: THE MAGICAL LETTER */}
           {currentScene === 4 && (
             <motion.div
               key="scene-4"
@@ -174,6 +329,7 @@ export function SceneOverlays({
             </motion.div>
           )}
 
+          {/* SCENE 5: MAKE A WISH CAKE */}
           {currentScene === 5 && (
             <motion.div
               key="scene-5"
@@ -203,7 +359,7 @@ export function SceneOverlays({
             </motion.div>
           )}
 
-          {/* Scene 6: Birthday Countdown (Previously Scene 7, Celestial Music Realm removed) */}
+          {/* SCENE 6: BIRTHDAY COUNTDOWN */}
           {currentScene === 6 && (
             <motion.div
               key="scene-6"
@@ -221,7 +377,7 @@ export function SceneOverlays({
             </motion.div>
           )}
 
-          {/* Scene 7: Secret Treasure Vault (Previously Scene 8) */}
+          {/* SCENE 7: SECRET TREASURE VAULT */}
           {currentScene === 7 && (
             <motion.div
               key="scene-7"
@@ -251,7 +407,7 @@ export function SceneOverlays({
             </motion.div>
           )}
 
-          {/* Scene 8: The Grand Finale (Previously Scene 9) */}
+          {/* SCENE 8: THE GRAND FINALE */}
           {currentScene === 8 && (
             <motion.div
               key="scene-8"

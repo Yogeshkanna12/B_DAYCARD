@@ -10,7 +10,7 @@ class CelestialMusicEngine {
   private mediaSource: MediaElementAudioSourceNode | null = null;
   private isSynthesizing: boolean = false;
   private isPlayingState: boolean = false;
-  private volume: number = 0.7;
+  private volume: number = 0.65;
   private listeners: Set<AudioStateListener> = new Set();
   private melodyTimer: ReturnType<typeof setInterval> | null = null;
   private melodyIndex: number = 0;
@@ -93,7 +93,6 @@ class CelestialMusicEngine {
       });
 
       this.audioElement.addEventListener('ended', () => {
-        // loop seamlessly
         this.audioElement?.play().catch(() => {});
       });
 
@@ -120,7 +119,60 @@ class CelestialMusicEngine {
     this.listeners.forEach(fn => fn(this.isPlayingState));
   }
 
-  public async play(): Promise<void> {
+  /**
+   * Starts background playback with a gentle volume fade-in
+   */
+  public async fadeIn(targetVolume: number = 0.65, durationMs: number = 2000): Promise<boolean> {
+    if (this.isPlayingState) return true; // Already playing
+
+    this.initAudioContext();
+    this.initAudioElement();
+
+    if (this.audioElement) {
+      try {
+        this.audioElement.volume = 0.02;
+        await this.audioElement.play();
+        this.isPlayingState = true;
+        this.stopSynthesizedMusic();
+        this.notify();
+
+        // Connect media source once
+        if (this.audioCtx && !this.mediaSource && this.analyser) {
+          try {
+            this.mediaSource = this.audioCtx.createMediaElementSource(this.audioElement);
+            this.mediaSource.connect(this.analyser);
+          } catch {
+            // Already connected
+          }
+        }
+
+        // Smooth volume step ramp
+        const steps = 20;
+        const interval = durationMs / steps;
+        const volStep = (targetVolume - 0.02) / steps;
+        let cur = 0.02;
+        const timer = setInterval(() => {
+          cur += volStep;
+          if (cur >= targetVolume) {
+            cur = targetVolume;
+            clearInterval(timer);
+          }
+          if (this.audioElement && this.isPlayingState) {
+            this.audioElement.volume = cur;
+          }
+        }, interval);
+
+        return true;
+      } catch (err) {
+        // Autoplay restricted by browser
+        return false;
+      }
+    }
+    return false;
+  }
+
+  public async play(): Promise<boolean> {
+    if (this.isPlayingState) return true;
     this.initAudioContext();
     this.initAudioElement();
 
@@ -131,16 +183,15 @@ class CelestialMusicEngine {
         this.stopSynthesizedMusic();
         this.notify();
 
-        // Connect media source to web audio analyser once user initiated
         if (this.audioCtx && !this.mediaSource && this.analyser) {
           try {
             this.mediaSource = this.audioCtx.createMediaElementSource(this.audioElement);
             this.mediaSource.connect(this.analyser);
           } catch {
-            // Already connected or cross-origin restriction
+            // Already connected
           }
         }
-        return;
+        return true;
       } catch (e) {
         console.warn('Direct MP3 playback restricted or failed, falling back to synth:', e);
       }
@@ -150,6 +201,7 @@ class CelestialMusicEngine {
     this.isPlayingState = true;
     this.notify();
     this.startSynthesizedMusic();
+    return true;
   }
 
   public pause(): void {
@@ -218,59 +270,43 @@ class CelestialMusicEngine {
     osc.frequency.setValueAtTime(note.freq, now);
 
     // Harmonic bell shimmer
-    const osc2 = this.audioCtx.createOscillator();
-    osc2.type = 'triangle';
-    osc2.frequency.setValueAtTime(note.freq * 2, now);
-
     noteGain.gain.setValueAtTime(0.001, now);
-    noteGain.gain.linearRampToValueAtTime(0.25 * this.volume, now + 0.02);
-    noteGain.gain.exponentialRampToValueAtTime(0.001, now + note.dur * 1.5);
+    noteGain.gain.exponentialRampToValueAtTime(0.35, now + 0.02);
+    noteGain.gain.exponentialRampToValueAtTime(0.0001, now + note.dur * 1.8);
 
     osc.connect(noteGain);
-    osc2.connect(noteGain);
     noteGain.connect(this.gainNode);
 
     osc.start(now);
-    osc2.start(now);
-    osc.stop(now + note.dur * 1.6);
-    osc2.stop(now + note.dur * 1.6);
+    osc.stop(now + note.dur * 1.9);
 
-    // Warm background chord pads
+    // Soft bass/chord accompaniment
     if (note.chord && note.chord.length > 0) {
-      note.chord.forEach((cFreq) => {
+      note.chord.forEach((chordFreq) => {
         if (!this.audioCtx || !this.gainNode) return;
-        const cOsc = this.audioCtx.createOscillator();
-        const cGain = this.audioCtx.createGain();
-        cOsc.type = 'sine';
-        cOsc.frequency.setValueAtTime(cFreq, now);
+        const chordOsc = this.audioCtx.createOscillator();
+        const chordGain = this.audioCtx.createGain();
 
-        cGain.gain.setValueAtTime(0.001, now);
-        cGain.gain.linearRampToValueAtTime(0.08 * this.volume, now + 0.1);
-        cGain.gain.exponentialRampToValueAtTime(0.001, now + note.dur * 1.8);
+        chordOsc.type = 'triangle';
+        chordOsc.frequency.setValueAtTime(chordFreq, now);
 
-        cOsc.connect(cGain);
-        cGain.connect(this.gainNode);
-        cOsc.start(now);
-        cOsc.stop(now + note.dur * 1.8);
+        chordGain.gain.setValueAtTime(0.001, now);
+        chordGain.gain.exponentialRampToValueAtTime(0.12, now + 0.04);
+        chordGain.gain.exponentialRampToValueAtTime(0.0001, now + note.dur * 2.2);
+
+        chordOsc.connect(chordGain);
+        chordGain.connect(this.gainNode);
+
+        chordOsc.start(now);
+        chordOsc.stop(now + note.dur * 2.3);
       });
     }
 
-    const nextDelay = note.dur * 1000;
     this.melodyIndex = (this.melodyIndex + 1) % this.melody.length;
+    const nextInterval = note.dur * 1000;
     this.melodyTimer = setTimeout(() => {
       this.playNextSynthNote();
-    }, nextDelay);
-  }
-
-  public getFrequencyData(array: Uint8Array): void {
-    if (this.analyser && this.isPlayingState) {
-      this.analyser.getByteFrequencyData(array as unknown as Uint8Array<ArrayBuffer>);
-    } else {
-      // Simulative rhythmic bounce if audio context isn't ready
-      for (let i = 0; i < array.length; i++) {
-        array[i] = this.isPlayingState ? Math.floor(Math.sin(Date.now() * 0.005 + i) * 60 + 80) : 0;
-      }
-    }
+    }, nextInterval);
   }
 }
 

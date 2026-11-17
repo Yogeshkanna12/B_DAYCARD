@@ -21,13 +21,18 @@ export function CameraRig({ currentScene, zoomed = false }: CameraRigProps) {
 
     // Define ideal camera position per scene
     switch (currentScene) {
-      case 1: // Intro
+      case 1: // Enchanted Garden Intro
         if (zoomed) {
           targetPos.current.set(0, 0.4, 1.8);
+          lookAtTarget.current.set(0, 0.1, 0);
         } else {
-          targetPos.current.set(parallaxX * 0.4, 1.2 + parallaxY * 0.2, 4.6);
+          // Smooth opening cinematic glide revealing the garden
+          const introProgress = Math.min(t / 4.5, 1.0);
+          const curY = THREE.MathUtils.lerp(1.8, 1.2, introProgress) + parallaxY * 0.25;
+          const curZ = THREE.MathUtils.lerp(5.8, 4.6, introProgress);
+          targetPos.current.set(parallaxX * 0.45, curY, curZ);
+          lookAtTarget.current.set(0, 0.2, 0);
         }
-        lookAtTarget.current.set(0, 0.2, 0);
         break;
 
       case 2: // Birthday World

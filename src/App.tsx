@@ -13,7 +13,7 @@ import { celestialMusic } from './utils/audioPlayer';
 import { fireBirthdayConfetti, fireGrandFinaleShower } from './utils/confettiSystem';
 
 const SCENE_TITLES = [
-  'Magical Entrance',
+  'Enchanted Garden',
   'The Birthday World',
   'Our Memories',
   'The Magical Letter',
@@ -32,6 +32,43 @@ export function App() {
   const [isVaultUnlocked, setIsVaultUnlocked] = useState(false);
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
   const [selectedMemory, setSelectedMemory] = useState<MemoryItem | null>(null);
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
+
+  // Background music autoplay attempt with smooth fade-in
+  useEffect(() => {
+    let active = true;
+
+    // Check if music is already playing; if not, attempt smooth fade-in
+    if (!celestialMusic.isPlaying()) {
+      celestialMusic.fadeIn(0.65, 2200).then((success) => {
+        if (!success && active) {
+          setAutoplayBlocked(true);
+        }
+      });
+    }
+
+    // If browser policy blocks autoplay, resume on very first visitor interaction
+    const handleFirstGesture = () => {
+      if (!celestialMusic.isPlaying()) {
+        celestialMusic.fadeIn(0.65, 1800);
+      }
+      setAutoplayBlocked(false);
+      window.removeEventListener('click', handleFirstGesture);
+      window.removeEventListener('keydown', handleFirstGesture);
+      window.removeEventListener('touchstart', handleFirstGesture);
+    };
+
+    window.addEventListener('click', handleFirstGesture, { passive: true });
+    window.addEventListener('keydown', handleFirstGesture, { passive: true });
+    window.addEventListener('touchstart', handleFirstGesture, { passive: true });
+
+    return () => {
+      active = false;
+      window.removeEventListener('click', handleFirstGesture);
+      window.removeEventListener('keydown', handleFirstGesture);
+      window.removeEventListener('touchstart', handleFirstGesture);
+    };
+  }, []);
 
   // Keyboard navigation & accessibility
   useEffect(() => {
@@ -162,6 +199,20 @@ export function App() {
       {/* Audio Controls (Top Right) */}
       <AudioControls />
 
+      {/* Unobtrusive "Enable Music" prompt if browser blocked initial autoplay */}
+      {autoplayBlocked && (
+        <button
+          onClick={() => {
+            celestialMusic.fadeIn(0.65, 1800);
+            setAutoplayBlocked(false);
+          }}
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-pink-500/90 hover:bg-pink-400 text-white font-medium text-xs sm:text-sm shadow-xl shadow-pink-500/40 border border-pink-200/50 backdrop-blur-md flex items-center gap-2 cursor-pointer animate-bounce select-none transition-all"
+        >
+          <span className="text-sm">🎵</span>
+          <span>Tap anywhere to enable music ✨</span>
+        </button>
+      )}
+
       {/* Dynamic 2D/3D Scene Overlays */}
       <SceneOverlays
         currentScene={currentScene}
@@ -172,6 +223,7 @@ export function App() {
         onRestart={handleRestart}
         memories={birthdayConfig.memories}
         onSelectMemory={handleSelectMemory}
+        onEnterGarden={handleOpenGiftBox}
       />
 
       {/* Bottom Scene Navigation Bar */}
